@@ -3,8 +3,8 @@ import { TaskAPI } from './apis/task-api'
 import { TaskData } from './common/types'
 import Task from './components/Task'
 import TaskInput from './components/TaskInput'
-import './App.css'
 import TaskEdit from './components/TaskEdit'
+import './App.css'
 
 
 function App() {
@@ -33,27 +33,53 @@ function App() {
     setEditMode(taskId)
   }
 
-  const updateTask = async (taskId: number, newName: string) => {
+  const updateTask = async (taskId: number, name: string) => {
     // update on the server
-    const response = await TaskAPI.update(taskId, { name: newName })
+    const response = await TaskAPI.updateName(taskId, name)
     const updatedTask = await response.json()
 
-    // update task in the state
+    // update in the state
     setTasks(tasks.map(task => task.id === taskId ? updatedTask : task))
     setEditMode(null)
   }
 
+  const onCompletionChange = async (taskId: number, is_completed: boolean) => {
+    const response = await TaskAPI.updateDateCompleted(taskId, is_completed)
+    const updatedTask = await response.json()
+
+    setTasks(tasks.map(task => task.id === taskId ? updatedTask : task))
+    setEditMode(null)
+  }
+
+  const deleteTask = async(taskId: number) => {
+    const response = await TaskAPI.delete(taskId)
+    const jsonResponse = await response.json()
+
+    // setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId))
+    setTasks(tasks.filter(task => task.id !== taskId))
+    setEditMode(null)
+  }
+
+  const cancelEditMode = () => {
+    setEditMode(null)
+  }
+
+  // Sort the tasks with completed tasks at the bottom
+  const sortedTasks = [...tasks].sort((a, b) => {
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  });
+
   return (
     <>
-      <div className='max-w-3xl mx-auto p-10' data-theme="light">
-        <h1>My Tasks</h1>
+      <div className='max-w-3xl mx-auto h-screen p-10 bg-white shadow-lg' data-theme="light">
+        <h1 className='font-bold text-center'>Make it so</h1>
         <div className='mt-10'>
           <TaskInput task={task} setTask={setTask} addTask={addTask} />
           <div className='mt-10'>
-              {tasks.map((task: TaskData) => (
+              {sortedTasks.map((task: TaskData) => (
                 task.id === editMode
-                ? <TaskEdit key={task.id} task={task} updateTask={updateTask} />
-                : <Task key={task.id} task={task} editTask={() => editTask(task.id)} />
+                ? <TaskEdit key={task.id} task={task} updateTask={updateTask} cancelEditMode={cancelEditMode} />
+                : <Task key={task.id} task={task} editTask={() => editTask(task.id)} onCompletionChange={onCompletionChange} deleteTask={deleteTask} />
               ))}
           </div>
         </div>
